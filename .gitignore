@@ -1,0 +1,6 @@
+.DS_Store
+.env
+pycache/
+node_modules/
+*.csv
+*.log
