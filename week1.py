@@ -53,8 +53,13 @@ def load_and_concatenate(file_paths, label: str) -> pd.DataFrame:
 
     for fpath in file_paths:
         if not os.path.exists(fpath):
-            print(f"  [WARNING] {label}: file not found, skipping -> {fpath}")
-            continue
+            filled_path = fpath.replace(".csv", "_filled.csv")
+            if os.path.exists(filled_path):
+                print(f"  [INFO] {label}: using _filled fallback -> {os.path.basename(filled_path)}")
+                fpath = filled_path
+            else:
+                print(f"  [WARNING] {label}: file not found, skipping -> {fpath}")
+                continue
         df = pd.read_csv(fpath, low_memory=False)
         print(f"  Loaded {os.path.basename(fpath)}: {len(df)} rows")
         running_total_before_concat += len(df)
@@ -92,6 +97,8 @@ def main():
     today = date.today()
     end_year, end_month = most_recently_completed_month(today)
     months = list(month_range(START_YEAR, START_MONTH, end_year, end_month))
+
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     print(f"Date range: {START_YEAR}-{START_MONTH:02d} through "
           f"{end_year}-{end_month:02d} ({len(months)} months)\n")
