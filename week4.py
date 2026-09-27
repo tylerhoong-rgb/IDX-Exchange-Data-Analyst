@@ -4,9 +4,13 @@ Takes the Residential-filtered Sold and Listing datasets and produces analysis-r
   1. Converting date fields to real datetime dtype (CloseDate,
      PurchaseContractDate, ListingContractDate, ContractStatusChangeDate).
   2. Dropping columns that are redundant or not useful for market
-     analytics (agent/office contact info, duplicate ID/address columns,
+     analytics (agent contact info, duplicate ID/address columns,
      source-system metadata) -- see DROP_COLUMNS below for the list and
-     the reasoning in drop_redundant_columns().
+     the reasoning in drop_redundant_columns(). ListOfficeName and
+     BuyerOfficeName are deliberately KEPT (not dropped) even though
+     they aren't used for pricing analysis, because Week 6 segment
+     analysis needs them for competitive intelligence and should be
+     able to read this script's output as its only input.
   3. Ensuring numeric fields are properly typed (coerced to numeric,
      invalid strings become NaN rather than silently breaking dtype).
   4. FLAGGING (not silently deleting) invalid numeric values so the
@@ -83,8 +87,12 @@ DROP_COLUMNS = {
     "BuyerAgentMlsId": "agent identifier, not needed for market analytics",
     "BuyerAgentFirstName": "agent contact info",
     "BuyerAgentLastName": "agent contact info",
-    "ListOfficeName": "office info, not needed for market analytics",
-    "BuyerOfficeName": "office info, not needed for market analytics",
+    # NOTE: ListOfficeName / BuyerOfficeName are intentionally NOT dropped
+    # here even though they aren't used for pricing/market-trend analysis.
+    # Week 6 segment analysis needs them for competitive intelligence
+    # (office-level performance), and keeping the Week 4-5 output as the
+    # single source of truth for Week 6 avoids that script having to read
+    # back further upstream than its immediate input.
     "BuyerOfficeName.1": "duplicate of BuyerOfficeName (raw export had duplicate header)",
     "CoListOfficeName": "office info, not needed for market analytics",
     "BuyerOfficeAOR": "office board code, not needed for market analytics",
@@ -271,6 +279,38 @@ def flag_geographic_quality(df: pd.DataFrame, label: str) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# STEP 8 - Duplicate ListingKey check (data integrity, not geographic)
+# ---------------------------------------------------------------------------
+def flag_duplicate_listing_keys(df: pd.DataFrame, label: str) -> pd.DataFrame:
+    """ListingKey is expected to uniquely identify a record, and later
+    pipeline steps (e.g. re-joining ListOfficeName/BuyerOfficeName for
+    Week 6 segment analysis) assume it is a safe 1:1 merge key. It is NOT
+    always unique in the raw CRMLS export -- some keys repeat multiple
+    times with differing field values (observed up to 9x for a single
+    key). This is flagged here, at cleaning time, rather than being
+    discovered later as a silent row-count inflation bug during a
+    downstream merge."""
+    df = df.copy()
+    print(f"\n--- [{label}] Duplicate ListingKey Check ---")
+    if "ListingKey" not in df.columns:
+        print("  [SKIP] ListingKey not present.")
+        return df
+
+    dupe_mask = df["ListingKey"].duplicated(keep=False)
+    df["duplicate_listing_key_flag"] = dupe_mask
+    n_dupe_rows = int(dupe_mask.sum())
+    n_dupe_keys = df.loc[dupe_mask, "ListingKey"].nunique()
+    print(f"  duplicate_listing_key_flag: {n_dupe_rows} rows flagged "
+          f"({n_dupe_keys} distinct ListingKey values appear more than once)")
+    if n_dupe_rows:
+        print("  NOTE: any future merge keyed on ListingKey must "
+              "de-duplicate the right-hand table first (keep='first' or "
+              "similar), or the merge will silently inflate row counts.")
+
+    return df
+
+
+# ---------------------------------------------------------------------------
 # PIPELINE
 # ---------------------------------------------------------------------------
 def run_pipeline(input_file: str, label: str, output_file: str) -> pd.DataFrame:
@@ -287,6 +327,7 @@ def run_pipeline(input_file: str, label: str, output_file: str) -> pd.DataFrame:
     df = flag_invalid_numeric_values(df, label)
     df = flag_date_consistency(df, label)
     df = flag_geographic_quality(df, label)
+    df = flag_duplicate_listing_keys(df, label)
 
     rows_after = len(df)
     cols_after = df.shape[1]
