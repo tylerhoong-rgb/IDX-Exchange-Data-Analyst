@@ -79,11 +79,12 @@ NUMERIC_FIELDS = [
 DROP_COLUMNS = {
     # (a) agent / office contact & compensation info
     "ListAgentEmail": "agent contact info, not needed for market analytics",
-    "ListAgentFirstName": "agent contact info",
-    "ListAgentLastName": "agent contact info",
-    "ListAgentFullName": "agent contact info",
-    "CoListAgentFirstName": "agent contact info",
-    "CoListAgentLastName": "agent contact info",
+    # NOTE: ListAgentFirstName / ListAgentLastName / ListAgentFullName are
+    # intentionally NOT dropped (kept, not redundant) -- the Weeks 8-10
+    # Tableau deliverable requires a "Top 100 listing agents by sales
+    # volume and units" dashboard, which needs an agent identity field.
+    # CoListAgent* names are kept alongside for the same reason (a
+    # co-listing agent shares credit for the sale).
     "BuyerAgentMlsId": "agent identifier, not needed for market analytics",
     "BuyerAgentFirstName": "agent contact info",
     "BuyerAgentLastName": "agent contact info",
