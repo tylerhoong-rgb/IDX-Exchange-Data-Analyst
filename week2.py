@@ -31,9 +31,7 @@ import matplotlib
 matplotlib.use("Agg")  # no display needed, just save PNGs
 import matplotlib.pyplot as plt
 
-# ---------------------------------------------------------------------------
 # CONFIG
-# ---------------------------------------------------------------------------
 INPUT_DIR = "Week1 Output"
 OUTPUT_DIR = "Week2 Output"
 PLOTS_DIR = os.path.join(OUTPUT_DIR, "plots")
@@ -73,9 +71,7 @@ METADATA_KEYWORDS = [
 ]
 
 
-# ---------------------------------------------------------------------------
-# HELPERS: file loading
-# ---------------------------------------------------------------------------
+# file loading helpers
 def dedupe_columns(df: pd.DataFrame, label: str) -> pd.DataFrame:
     """The raw CRMLS export files contain duplicate column headers (e.g.
     PropertyType and PropertyType.1). pandas auto-suffixes these with
@@ -107,9 +103,7 @@ def load_combined(file_path: str, label: str) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
-# STEP 1: Dataset Understanding
-# ---------------------------------------------------------------------------
+# Dataset understanding
 def dataset_understanding(df: pd.DataFrame, label: str):
     print(f"\n--- [{label}] Dataset Understanding ---")
     print(f"Rows: {df.shape[0]}, Columns: {df.shape[1]}")
@@ -127,9 +121,7 @@ def dataset_understanding(df: pd.DataFrame, label: str):
     return market_fields, metadata_fields
 
 
-# ---------------------------------------------------------------------------
-# STEP 2: Missing Value Analysis
-# ---------------------------------------------------------------------------
+# Missing value analysis
 def missing_value_report(df: pd.DataFrame, label: str) -> pd.DataFrame:
     print(f"\n--- [{label}] Missing Value Analysis ---")
     null_counts = df.isnull().sum()
@@ -168,9 +160,7 @@ def apply_drop_decisions(df: pd.DataFrame, report: pd.DataFrame) -> pd.DataFrame
     return df.drop(columns=drop_cols, errors="ignore")
 
 
-# ---------------------------------------------------------------------------
-# STEP 3: Property type documentation + Residential filter
-# ---------------------------------------------------------------------------
+# Property type documentation + Residential filter
 def document_and_filter_residential(df: pd.DataFrame, label: str) -> pd.DataFrame:
     print(f"\n--- [{label}] Property Type Filtering ---")
     if "PropertyType" not in df.columns:
@@ -194,9 +184,7 @@ def document_and_filter_residential(df: pd.DataFrame, label: str) -> pd.DataFram
     return filtered
 
 
-# ---------------------------------------------------------------------------
-# STEP 4: Numeric Distribution Review
-# ---------------------------------------------------------------------------
+# numeric distribution review
 def numeric_distribution_review(df: pd.DataFrame, label: str):
     print(f"\n--- [{label}] Numeric Distribution Review ---")
     os.makedirs(PLOTS_DIR, exist_ok=True)
@@ -271,9 +259,7 @@ def numeric_distribution_review(df: pd.DataFrame, label: str):
     return full_summary
 
 
-# ---------------------------------------------------------------------------
-# STEP 5: Suggested Intern Questions
-# ---------------------------------------------------------------------------
+# Intern Questions
 def answer_intern_questions(raw_df: pd.DataFrame, residential_df: pd.DataFrame, label: str):
     print(f"\n--- [{label}] Suggested Intern Questions ---")
 
@@ -294,7 +280,7 @@ def answer_intern_questions(raw_df: pd.DataFrame, residential_df: pd.DataFrame, 
         print("Q3: DaysOnMarket distribution (min/25/50/75/max):")
         print(dom.describe(percentiles=[0.25, 0.5, 0.75]).to_string())
 
-    # Q4: % sold above vs. below list price (requires ClosePrice & ListPrice)
+    # Q4: % sold above vs. below list price 
     if {"ClosePrice", "ListPrice"}.issubset(residential_df.columns):
         tmp = residential_df[["ClosePrice", "ListPrice"]].apply(pd.to_numeric, errors="coerce").dropna()
         above = (tmp["ClosePrice"] > tmp["ListPrice"]).mean() * 100
@@ -322,9 +308,7 @@ def answer_intern_questions(raw_df: pd.DataFrame, residential_df: pd.DataFrame, 
         print(top_counties.to_string())
 
 
-# ---------------------------------------------------------------------------
 # PIPELINE
-# ---------------------------------------------------------------------------
 def run_pipeline(input_file: str, label: str, output_filename: str):
     print(f"\n============================ {label.upper()} ============================")
     raw_df = load_combined(input_file, label)
