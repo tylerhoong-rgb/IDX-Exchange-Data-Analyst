@@ -149,3 +149,27 @@
   GarageSpaces: float64
   Stories: float64
   MainLevelBedrooms: float64
+
+
+quick summary:
+conversion to datetime format: clarification on null/unparsable null values already existed, conversion did not create new null values
+Redundant Column Removal: 14 for sold, 12 for listing
+missing values: 45 cols for sold, 41 cols for listing
+invalid numeric values: some flagged for both sold and listing
+data consistency: some flagged for both sold and listing
+
+--- [Sold] Geographic Data Quality ---
+  missing_coordinates_flag: 15948 rows flagged (3.85%)
+  zero_coordinates_flag: 27 rows flagged (0.01%)
+  longitude_positive_flag: 31 rows flagged (0.01%)
+  implausible_coordinates_flag: 61 rows flagged (0.01%)
+  TOTAL rows with at least one geographic data quality issue: 16036 (3.87%)
+
+  --- [Listing] Geographic Data Quality ---
+  missing_coordinates_flag: 80247 rows flagged (14.67%)
+  zero_coordinates_flag: 64 rows flagged (0.01%)
+  longitude_positive_flag: 73 rows flagged (0.01%)
+  implausible_coordinates_flag: 219 rows flagged (0.04%)
+  TOTAL rows with at least one geographic data quality issue: 80530 (14.72%)
+
+  
