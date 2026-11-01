@@ -1,175 +1,99 @@
-============================ SOLD ============================
-  Loaded Week3 Output/CRMLSSold_Residential_WithRates.csv: 414063 rows, 71 columns
+# Weeks 4-5 Summary: Data Cleaning and Preparation
+## 1. Before / after row and column counts
 
---- [Sold] Date Field Conversion ---
-  CloseDate: str -> datetime64[us] (0 null/unparseable after conversion)
-  PurchaseContractDate: str -> datetime64[us] (195 null/unparseable after conversion)
-  ListingContractDate: str -> datetime64[us] (1 null/unparseable after conversion)
-  ContractStatusChangeDate: str -> datetime64[us] (589 null/unparseable after conversion)
+| Dataset | Rows before | Rows after | Columns before | Columns after dropping | Columns in final file |
+|---|---|---|---|---|---|
+| Sold | 414,063 | 414,063 | 71 | 57 | 71 |
+| Listing | 547,162 | 547,162 | 64 | 52 | 66 |
 
---- [Sold] Redundant Column Removal ---
-  Columns before: 71
-  Dropping 'ListAgentEmail' -- agent contact info, not needed for market analytics
-  Dropping 'BuyerAgentMlsId' -- agent identifier, not needed for market analytics
-  Dropping 'BuyerAgentFirstName' -- agent contact info
-  Dropping 'BuyerAgentLastName' -- agent contact info
-  Dropping 'CoListOfficeName' -- office info, not needed for market analytics
-  Dropping 'BuyerOfficeAOR' -- office board code, not needed for market analytics
-  Dropping 'BuyerAgentAOR' -- agent board code, not needed for market analytics
-  Dropping 'ListAgentAOR' -- agent board code, not needed for market analytics
-  Dropping 'BuyerAgencyCompensationType' -- commission info, not needed for market analytics
-  Dropping 'BuyerAgencyCompensation' -- commission info, not needed for market analytics
-  Dropping 'ListingKeyNumeric' -- duplicate of ListingKey in numeric form
-  Dropping 'StreetNumberNumeric' -- redundant, derivable from UnparsedAddress
-  Dropping 'OriginatingSystemName' -- constant source-system metadata, not analytical
-  Dropping 'OriginatingSystemSubName' -- constant source-system metadata, not analytical
-  Columns after: 57
+- **No rows were removed.** Problem records are flagged, not deleted, so every row stays available for audit. The Week 6 scripts will load the same 414,063 and 547,162 rows.
+- The final column count is the retained columns plus 14 flag columns (5 invalid-value flags plus the combined `invalid_numeric_flag`, 3 date flags, 4 geographic flags and `duplicate_listing_key_flag`).
 
---- [Sold] Missing Value Handling ---
-  45 columns contain at least one null value
+## 2. Date conversion
 
---- [Sold] Invalid Numeric Value Flags ---
-  invalid_close_price_flag: 1 rows flagged
-  invalid_living_area_flag: 150 rows flagged
-  invalid_dom_flag: 47 rows flagged
-  invalid_bedrooms_flag: 0 rows flagged
-  invalid_bathrooms_flag: 0 rows flagged
-  invalid_numeric_flag: 198 rows flagged
+All four fields were converted to `datetime64`: `CloseDate`, `PurchaseContractDate`, `ListingContractDate`, `ContractStatusChangeDate`.
 
---- [Sold] Date Consistency Flags ---
-  listing_after_close_flag: 61 rows flagged
-  purchase_after_close_flag: 240 rows flagged
-  negative_timeline_flag: 268 rows flagged
+| Field | Sold nulls | Listing nulls |
+|---|---|---|
+| CloseDate | 0 | 388,096 |
+| PurchaseContractDate | 195 | 285,676 |
+| ListingContractDate | 1 | 0 |
+| ContractStatusChangeDate | 589 | 6,311 |
 
---- [Sold] Geographic Data Quality ---
-  missing_coordinates_flag: 15948 rows flagged (3.85%)
-  zero_coordinates_flag: 27 rows flagged (0.01%)
-  longitude_positive_flag: 31 rows flagged (0.01%)
-  implausible_coordinates_flag: 61 rows flagged (0.01%)
-  TOTAL rows with at least one geographic data quality issue: 16036 (3.87%)
+The conversion did not create new nulls. These blanks were already in the raw data. The large Listing counts are expected, because most listing records are active or pending and have no close or contract date yet. The 159,066 non-null Listing close dates match the number of closed records seen in Week 6.
 
---- [Sold] Duplicate ListingKey Check ---
-  duplicate_listing_key_flag: 680 rows flagged (338 distinct ListingKey values appear more than once)
+## 3. Redundant column removal
 
---- [Sold] Final dtype confirmation (date & numeric fields) ---
-  CloseDate: datetime64[us]
-  PurchaseContractDate: datetime64[us]
-  ListingContractDate: datetime64[us]
-  ContractStatusChangeDate: datetime64[us]
-  ClosePrice: float64
-  ListPrice: float64
-  OriginalListPrice: float64
-  LivingArea: float64
-  LotSizeAcres: float64
-  LotSizeArea: float64
-  LotSizeSquareFeet: float64
-  BedroomsTotal: float64
-  BathroomsTotalInteger: float64
-  DaysOnMarket: int64
-  YearBuilt: float64
-  Latitude: float64
-  Longitude: float64
-  AssociationFee: float64
-  ParkingTotal: float64
-  GarageSpaces: float64
-  Stories: float64
-  MainLevelBedrooms: float64
+| Dataset | Columns dropped |
+|---|---|
+| Sold | 14 (71 to 57) |
+| Listing | 12 (64 to 52) |
 
-============================ LISTING ============================
-  Loaded Week3 Output/CRMLSListing_Residential_WithRates.csv: 547162 rows, 64 columns
+Columns were dropped for three reasons:
+- **Agent contact info and identifiers:** `ListAgentEmail`, `BuyerAgentMlsId`, `BuyerAgentFirstName`, `BuyerAgentLastName`.
+- **Office/board codes, commission fields and source-system metadata:** `CoListOfficeName`, `BuyerOfficeAOR`, `BuyerAgentAOR`, `ListAgentAOR`, `BuyerAgencyCompensationType`, `BuyerAgencyCompensation`, `OriginatingSystemName`, `OriginatingSystemSubName`. The last two apply to Sold only, as do `BuyerAgentAOR` and `ListAgentAOR`.
+- **Duplicates of columns already kept:** `ListingKeyNumeric`, `StreetNumberNumeric`, and for Listing only `BuyerOfficeName.1` and `UnparsedAddress.1` (the raw export had duplicate headers).
 
---- [Listing] Date Field Conversion ---
-  CloseDate: str -> datetime64[us] (388096 null/unparseable after conversion)
-  PurchaseContractDate: str -> datetime64[us] (285676 null/unparseable after conversion)
-  ListingContractDate: str -> datetime64[us] (0 null/unparseable after conversion)
-  ContractStatusChangeDate: str -> datetime64[us] (6311 null/unparseable after conversion)
+## 4. Missing values
 
---- [Listing] Redundant Column Removal ---
-  Columns before: 64
-  Dropping 'ListAgentEmail' -- agent contact info, not needed for market analytics
-  Dropping 'BuyerAgentMlsId' -- agent identifier, not needed for market analytics
-  Dropping 'BuyerAgentFirstName' -- agent contact info
-  Dropping 'BuyerAgentLastName' -- agent contact info
-  Dropping 'BuyerOfficeName.1' -- duplicate of BuyerOfficeName (raw export had duplicate header)
-  Dropping 'CoListOfficeName' -- office info, not needed for market analytics
-  Dropping 'BuyerOfficeAOR' -- office board code, not needed for market analytics
-  Dropping 'BuyerAgencyCompensationType' -- commission info, not needed for market analytics
-  Dropping 'BuyerAgencyCompensation' -- commission info, not needed for market analytics
-  Dropping 'ListingKeyNumeric' -- duplicate of ListingKey in numeric form
-  Dropping 'StreetNumberNumeric' -- redundant, derivable from UnparsedAddress
-  Dropping 'UnparsedAddress.1' -- duplicate of UnparsedAddress (raw export had duplicate header)
-  Columns after: 52
+| Dataset | Columns with at least one null |
+|---|---|
+| Sold | 45 |
+| Listing | 41 |
 
---- [Listing] Missing Value Handling ---
-  41 columns contain at least one null value
+Core market fields (ClosePrice, LivingArea and so on) are left as null rather than filled, because invented values would bias the analysis. Boolean-style fields are not coerced to False, since a blank means "not specified", not "absent".
 
---- [Listing] Invalid Numeric Value Flags ---
-  invalid_close_price_flag: 0 rows flagged
-  invalid_living_area_flag: 360 rows flagged
-  invalid_dom_flag: 27 rows flagged
-  invalid_bedrooms_flag: 0 rows flagged
-  invalid_bathrooms_flag: 0 rows flagged
-  invalid_numeric_flag: 387 rows flagged
+## 5. Numeric typing
 
---- [Listing] Date Consistency Flags ---
-  listing_after_close_flag: 73 rows flagged
-  purchase_after_close_flag: 262 rows flagged
-  negative_timeline_flag: 269 rows flagged
+Numeric fields were confirmed as numeric in both datasets: `ClosePrice`, `ListPrice`, `OriginalListPrice`, `LivingArea`, the lot-size fields, `BedroomsTotal`, `BathroomsTotalInteger`, `YearBuilt`, `Latitude`, `Longitude`, `AssociationFee`, `ParkingTotal`, `GarageSpaces`, `Stories` and `MainLevelBedrooms` are `float64`; `DaysOnMarket` is `int64`.
 
---- [Listing] Geographic Data Quality ---
-  missing_coordinates_flag: 80247 rows flagged (14.67%)
-  zero_coordinates_flag: 64 rows flagged (0.01%)
-  longitude_positive_flag: 73 rows flagged (0.01%)
-  implausible_coordinates_flag: 219 rows flagged (0.04%)
-  TOTAL rows with at least one geographic data quality issue: 80530 (14.72%)
+## 6. Invalid numeric values (flagged, not removed)
 
---- [Listing] Duplicate ListingKey Check ---
-  duplicate_listing_key_flag: 276 rows flagged (137 distinct ListingKey values appear more than once)
+| Flag | Rule | Sold | Listing |
+|---|---|---|---|
+| `invalid_close_price_flag` | ClosePrice <= 0 | 1 | 0 |
+| `invalid_living_area_flag` | LivingArea <= 0 | 150 | 360 |
+| `invalid_dom_flag` | DaysOnMarket < 0 | 47 | 27 |
+| `invalid_bedrooms_flag` | Bedrooms < 0 | 0 | 0 |
+| `invalid_bathrooms_flag` | Bathrooms < 0 | 0 | 0 |
+| `invalid_numeric_flag` | Any of the above | 198 | 387 |
 
---- [Listing] Final dtype confirmation (date & numeric fields) ---
-  CloseDate: datetime64[us]
-  PurchaseContractDate: datetime64[us]
-  ListingContractDate: datetime64[us]
-  ContractStatusChangeDate: datetime64[us]
-  ClosePrice: float64
-  ListPrice: float64
-  OriginalListPrice: float64
-  LivingArea: float64
-  LotSizeAcres: float64
-  LotSizeArea: float64
-  LotSizeSquareFeet: float64
-  BedroomsTotal: float64
-  BathroomsTotalInteger: float64
-  DaysOnMarket: int64
-  YearBuilt: float64
-  Latitude: float64
-  Longitude: float64
-  AssociationFee: float64
-  ParkingTotal: float64
-  GarageSpaces: float64
-  Stories: float64
-  MainLevelBedrooms: float64
+## 7. Date consistency flags
 
+Expected order: ListingContractDate, then PurchaseContractDate, then CloseDate.
 
-quick summary:
-conversion to datetime format: clarification on null/unparsable null values already existed, conversion did not create new null values
-Redundant Column Removal: 14 for sold, 12 for listing
-missing values: 45 cols for sold, 41 cols for listing
-invalid numeric values: some flagged for both sold and listing
-data consistency: some flagged for both sold and listing
+| Flag | Sold | Listing |
+|---|---|---|
+| `listing_after_close_flag` | 61 | 73 |
+| `purchase_after_close_flag` | 240 | 262 |
+| `negative_timeline_flag` | 268 | 269 |
 
---- [Sold] Geographic Data Quality ---
-  missing_coordinates_flag: 15948 rows flagged (3.85%)
-  zero_coordinates_flag: 27 rows flagged (0.01%)
-  longitude_positive_flag: 31 rows flagged (0.01%)
-  implausible_coordinates_flag: 61 rows flagged (0.01%)
-  TOTAL rows with at least one geographic data quality issue: 16036 (3.87%)
+## 8. Geographic data quality
 
-  --- [Listing] Geographic Data Quality ---
-  missing_coordinates_flag: 80247 rows flagged (14.67%)
-  zero_coordinates_flag: 64 rows flagged (0.01%)
-  longitude_positive_flag: 73 rows flagged (0.01%)
-  implausible_coordinates_flag: 219 rows flagged (0.04%)
-  TOTAL rows with at least one geographic data quality issue: 80530 (14.72%)
+Implausible coordinates are those outside a California bounding box (latitude 32.0 to 42.5, longitude -125.0 to -113.5).
 
-  
+| Flag | Sold | Listing |
+|---|---|---|
+| `missing_coordinates_flag` (lat or lon null) | 15,948 (3.85%) | 80,247 (14.67%) |
+| `zero_coordinates_flag` (lat or lon = 0) | 27 (0.01%) | 64 (0.01%) |
+| `longitude_positive_flag` (lon > 0) | 31 (0.01%) | 73 (0.01%) |
+| `implausible_coordinates_flag` (outside CA box) | 61 (0.01%) | 219 (0.04%) |
+| **Rows with at least one geographic issue** | **16,036 (3.87%)** | **80,530 (14.72%)** |
+
+The per-flag counts add up to slightly more than the total because some rows trigger more than one flag (for example, a positive longitude is also outside the California box). Nearly all the geographic problems are simply missing coordinates. The Listing dataset has a higher rate because it includes active listings that were not geocoded.
+
+## 9. Duplicate ListingKey check (flagged, not removed)
+
+| Dataset | Rows flagged | Distinct keys repeated |
+|---|---|---|
+| Sold | 680 | 338 |
+| Listing | 276 | 137 |
+
+`ListingKey` should be unique. The flag marks every row involved so duplicates can be reviewed and are not silently counted twice in later joins or summaries. They are about 0.16% of Sold rows and 0.05% of Listing rows.
+
+## 10. Output files
+
+| File | Rows | Purpose |
+|---|---|---|
+| `CRMLSSold_Residential_Cleaned.csv` | 414,063 | Analysis-ready Sold dataset with flag columns |
+| `CRMLSListing_Residential_Cleaned.csv` | 547,162 | Analysis-ready Listing dataset with flag columns |
